@@ -10,10 +10,22 @@ import {
 } from "@/constants/Options";
 import { toast } from "sonner";
 import { chatSession } from "@/service/AIModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  // DialogTitle,
+  // DialogTrigger,
+} from "@/components/ui/dialog";
+import { FcGoogle } from "react-icons/fc";
+import { useGoogleLogin } from "@react-oauth/google";
+import axios from "axios";
 
 function CreateTrip() {
   const [place, setPlace] = useState();
   const [formData, setFormData] = useState([]);
+  const [openDialog, setOpenDialog] = useState(false);
 
   const handleInputChange = (name, value) => {
     setFormData({
@@ -26,7 +38,19 @@ function CreateTrip() {
     console.log(formData);
   }, [formData]);
 
+  const login = useGoogleLogin({
+    onSuccess: (codeResp) => GetUserProfile(codeResp),
+    onError: (error) => console.log(error),
+  });
+
   const OnGenerateTrips = async () => {
+    const user = localStorage.getItem("user");
+
+    if (!user) {
+      setOpenDialog(true);
+      return;
+    }
+
     if (
       (formData?.noOfDays > 5 && !formData?.location) ||
       !formData?.budget ||
@@ -49,6 +73,25 @@ function CreateTrip() {
     const result = await chatSession.sendMessage(FINAL_PROMPT);
 
     console.log(result?.response?.text());
+  };
+
+  const GetUserProfile = async (tokenInfo) => {
+    await axios
+      .get(
+        `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${tokenInfo?.access_token}`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenInfo?.access_token}`,
+            Accept: "Application/json",
+          },
+        }
+      )
+      .then((resp) => {
+        console.log(resp);
+        localStorage.setItem("user", JSON.stringify(resp.data));
+        setOpenDialog(false);
+        OnGenerateTrips();
+      });
   };
 
   return (
@@ -140,6 +183,29 @@ function CreateTrip() {
       <div className="my-10 flex justify-end">
         <Button onClick={OnGenerateTrips}>Generate Trip</Button>
       </div>
+
+      <Dialog open={openDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogDescription>
+              <div className="flex gap-2 items-center">
+                <img src="/logo.svg" alt="logo" />
+                <h2 className="text-2xl font-bold text-red-950">Tripify</h2>
+              </div>
+              <h2 className="text-lg font-bold mt-7">Sign In with Google</h2>
+              <p>Sign in to the app with the Google authentication securely</p>
+
+              <Button
+                onClick={login}
+                className="w-full mt-5 flex gap-4 items-center"
+              >
+                <FcGoogle className="h-7 w-7" />
+                Sign In with Google
+              </Button>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
