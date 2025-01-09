@@ -3,18 +3,19 @@ import GooglePlacesAutocomplete from "react-google-places-autocomplete";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { SelectBudgetOptions, SelectTravelList } from "@/constants/Options";
+import {
+  AI_PROMPT,
+  SelectBudgetOptions,
+  SelectTravelList,
+} from "@/constants/Options";
+import { toast } from "sonner";
+import { chatSession } from "@/service/AIModal";
 
 function CreateTrip() {
   const [place, setPlace] = useState();
   const [formData, setFormData] = useState([]);
 
   const handleInputChange = (name, value) => {
-    if (name == "noOfDays" && value > 10) {
-      console.log("please enter less than 10 days");
-      return;
-    }
-
     setFormData({
       ...formData,
       [name]: value,
@@ -25,8 +26,29 @@ function CreateTrip() {
     console.log(formData);
   }, [formData]);
 
-  const OnGenerateTrips = () => {
-    if (formData?.noOfDays > 5) return;
+  const OnGenerateTrips = async () => {
+    if (
+      (formData?.noOfDays > 5 && !formData?.location) ||
+      !formData?.budget ||
+      !formData?.traveler
+    ) {
+      toast.error("Please fill all details");
+      return;
+    }
+    const FINAL_PROMPT = AI_PROMPT.replace(
+      `{location}`,
+      formData?.location?.label
+    )
+      .replace("{totalDays}", formData?.noOfDays)
+      .replace("{traveler}", formData.traveler)
+      .replace("{budget}", formData?.budget)
+      .replace("{totalDays}", formData?.noOfDays);
+
+    console.log(FINAL_PROMPT);
+
+    const result = await chatSession.sendMessage(FINAL_PROMPT);
+
+    console.log(result?.response?.text());
   };
 
   return (
