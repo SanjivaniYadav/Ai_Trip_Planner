@@ -25,11 +25,15 @@ import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/service/FirebaseConfig";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 
+import { useNavigate } from "react-router";
+
 function CreateTrip() {
   const [place, setPlace] = useState();
   const [formData, setFormData] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleInputChange = (name, value) => {
     setFormData({
@@ -87,6 +91,7 @@ function CreateTrip() {
 
     const user = JSON.parse(localStorage.getItem("user"));
     const docId = Date.now().toString();
+
     await setDoc(doc(db, "AiTrips", docId), {
       userSelection: formData,
       tripData: JSON.parse(TripData),
@@ -94,6 +99,7 @@ function CreateTrip() {
       id: docId,
     });
     setLoading(false);
+    navigate("/view-trip/" + docId);
   };
 
   const GetUserProfile = (tokenInfo) => {
